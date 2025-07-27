@@ -1,28 +1,65 @@
-def create_reservation_logic(
-    new_reservation: dict, existing_reservations: list[dict]
-) -> dict:
-    """
-    新しい予約が有効か（データ形式、時間的衝突）を検証し、
-    問題がなければ予約情報を返す。
+from fastapi import APIRouter, HTTPException, status
+from datetime import datetime
 
-    Raises:
-        ValueError: 予約が衝突した場合や、データが不正な場合
-    """
-    # Test Case 3: 終了時刻が開始時刻より前の予約は不正
-    if new_reservation["end_time"] <= new_reservation["start_time"]:
+# from models import models.Reservation
+from .. import models
+
+router = APIRouter(
+    prefix="/reservations",
+    tags=["reservations"],
+)
+
+
+# --- 偽物のインメモリデータベース ---
+# アプリケーションが起動している間だけデータを保持します。
+# テストのたびにリセットする必要があります。
+db_reservations: list[models.Reservation] = []
+
+
+def check_reservation_conflict(
+    new_reservation: models.Reservation,
+    existing_reservations: list[models.Reservation],
+) -> None:
+    if new_reservation.end_time <= new_reservation.start_time:
         raise ValueError("End time must be after start time.")
 
-    # Test Case 1 & 2: 既存の予約と時間的な衝突がないかチェック
     for existing in existing_reservations:
-        # 衝突条件:
-        # 新規予約の開始時刻 < 既存予約の終了時刻 AND 新規予約の終了時刻 > 既存予約の開始時刻
-        # ex) 11:00 < 11:30 and 12:00 > 10:30
-        # これが成立する場合、時間帯が重なっていると判断できる
         if (
-            new_reservation["start_time"] < existing["end_time"]
-            and new_reservation["end_time"] > existing["start_time"]
+            new_reservation.start_time < existing.end_time
+            and new_reservation.end_time > existing.start_time
         ):
-            raise ValueError("Reservation conflict detected.")
+            # 別のリソースの予約とは衝突しない
+            if new_reservation.resource_id == existing.resource_id:
+                raise ValueError(
+                    f"models.Reservation conflict detected for resource {new_reservation.resource_id}."
+                )
 
-    # 全てのチェックをパスした場合、新しい予約情報をそのまま返す
-    return new_reservation
+
+@router.post(
+    "/", response_model=models.Reservation, status_code=status.HTTP_201_CREATED
+)
+def create_reservation(reservation_date: models.ReservationCreate):
+    """新しい予約を作成するエンドポイント"""
+    try:
+        check_reservation_conflict(reservation_date, db_reservations)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+
+    # 衝突がなければ、"データベース"に保存
+    # 実際のアプリではここでDBの採番IDなどをセットする
+    new_id = len(db_reservations) + 1
+    created_reservation = models.Reservation(
+        id=new_id,
+        **reservation_date.model_dump(),  # Pydantic v2
+    )
+    db_reservations.append(created_reservation)
+
+    return created_reservation
+
+
+# テストを容易にするための、DBをリセットするエンドポイント（開発用）
+@router.delete("/all", status_code=status.HTTP_204_NO_CONTENT)
+def clear_all_reservations():
+    """全ての予約を削除する（テスト用）"""
+    db_reservations.clear()
+    return None
