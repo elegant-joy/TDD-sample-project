@@ -1,5 +1,7 @@
 import unittest
 from datetime import datetime, timedelta
+
+from app.routers.reservations import create_reservation_logic
 # FastAPIのテストにはTestClientを使うのが便利ですが、
 # まずは純粋なロジックのテストから始めます。
 
@@ -25,21 +27,21 @@ from datetime import datetime, timedelta
 
 # --- この部分は、後で app/routers/reservations.py などに実装するロジックの仮置き ---
 # TDDのサイクル：まずテストを書き、それをパスさせるためにこの関数を実装します。
-def create_reservation_logic(new_reservation, existing_reservations):
-    """
-    Args:
-        new_reservation (dict): {'start_time': datetime, 'end_time': datetime}
-        existing_reservations (list[dict]): 既存の予約リスト
+# def create_reservation_logic(new_reservation, existing_reservations):
+#     """
+#     Args:
+#         new_reservation (dict): {'start_time': datetime, 'end_time': datetime}
+#         existing_reservations (list[dict]): 既存の予約リスト
 
-    Returns:
-        dict: 作成された予約情報
+#     Returns:
+#         dict: 作成された予約情報
 
-    Raises:
-        ValueError: 予約が衝突した場合や、データが不正な場合
-    """
-    # 最初はわざと実装しないか、常に成功させる
-    # self.fail()をパスさせるために、まずは例外を発生させる実装から始める
-    raise NotImplementedError("This function is not yet implemented.")
+#     Raises:
+#         ValueError: 予約が衝突した場合や、データが不正な場合
+#     """
+#     # 最初はわざと実装しないか、常に成功させる
+#     # self.fail()をパスさせるために、まずは例外を発生させる実装から始める
+#     raise NotImplementedError("This function is not yet implemented.")
 
 
 # --------------------------------------------------------------------------------
